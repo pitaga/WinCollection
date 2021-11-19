@@ -1,6 +1,10 @@
-#include <Windows.h>
-#include <CommCtrl.h>
+#include "WtlCDC.h"
+#include "WtlRect.h"
+#include <GdiPlus.h>
+#include "CGdiPlusBitmap.h"
 #include "resource.h"
+
+#pragma comment(lib, "gdiplus.lib")
 
 #define IDC_BUTTON	10
 #define IDC_EDIT	11
@@ -37,41 +41,23 @@ LRESULT CALLBACK BTProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
 }
 
 
-LRESULT CALLBACK ETProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
-{
-	switch (Msg)
-	{
-	case WM_KEYUP:
-	{
-		if (wParam == VK_DELETE || wParam == VK_BACK) {
-			ShowWindow(hWnd, SW_HIDE);
-			ShowWindow(hWnd, SW_SHOW);
-			SetFocus(hWnd);
-		}
-		break;
-	}
-
-	}
-
-	return CallWindowProc(EDTProc, hWnd, Msg, wParam, lParam);
-}
-
-
 
 LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
+	ULONG_PTR token = {};
+
 	switch (uMsg)
 	{
 	case WM_INITDIALOG:
 	{
-		HWND hButtonWnd = CreateWindow(WC_BUTTON, L"按钮", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 100, 100, 200, 25, hwnd, (HMENU)IDC_BUTTON, NULL, NULL);
-		HWND hEditWnd = CreateWindow(WC_EDIT, L"用户名", WS_CHILD | WS_VISIBLE | WS_EX_LAYERED, 100, 200, 200, 25, hwnd, (HMENU)IDC_EDIT, NULL, NULL);
-		
-		// WS_EX_LAYERED		用户名
-		// WS_EX_TRANSPARENT	密码
+		Gdiplus::GdiplusStartupInput start;
+		Gdiplus::GdiplusStartup(&token, &start, NULL);
 
+		// WS_EX_LAYERED	WS_EX_TRANSPARENT
+		CreateWindow(WC_EDIT, L"用户名", WS_CHILD | WS_VISIBLE | WS_EX_LAYERED, 100, 200, 200, 25, hwnd, (HMENU)IDC_EDIT, NULL, NULL);
+
+		HWND hButtonWnd = CreateWindow(WC_BUTTON, L"按钮", WS_CHILD | WS_VISIBLE | BS_OWNERDRAW, 100, 100, 200, 25, hwnd, (HMENU)IDC_BUTTON, NULL, NULL);
 		BTNProc = (WNDPROC)SetWindowLongW(hButtonWnd, GWL_WNDPROC, (LPARAM)(WNDPROC)BTProc);
-		EDTProc = (WNDPROC)SetWindowLongW(hEditWnd, GWL_WNDPROC, (LPARAM)(WNDPROC)ETProc);
 
 		ShowWindow(hwnd, SW_SHOW);
 		break;
@@ -79,12 +65,17 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 	{
+		Gdiplus::GdiplusShutdown(token);
 		PostQuitMessage(0);
 		break;
 	}
 
 	case WM_COMMAND:
 	{
+		if (HIWORD(wParam) == EN_CHANGE && LOWORD(wParam) == IDC_EDIT) {
+			RECT rect = { 100, 200, 300, 225 };
+			InvalidateRect(hwnd, &rect, FALSE);
+		}
 		if (LOWORD(wParam) == IDC_BUTTON) {
 			MessageBoxA(NULL, "Button Pressed", "", 0);
 		}
@@ -97,6 +88,27 @@ LRESULT CALLBACK DialogProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 		SetTextColor(hdc, RGB(0, 0, 0));
 		SetBkMode(hdc, TRANSPARENT);
 		return (LRESULT)GetStockObject(NULL_BRUSH);
+	}
+
+	case WM_PAINT:
+	{
+		CRect rect;
+		GetClientRect(hwnd, &rect);
+
+		Gdiplus::Bitmap* memory = new Gdiplus::Bitmap(rect.Width(), rect.Height());
+		Gdiplus::Graphics* canvas = Gdiplus::Graphics::FromImage(memory);
+
+		Gdiplus::Image image(L"back.jpg");
+		canvas->DrawImage(&image, 0, 0, rect.Width(), rect.Height());
+
+		CPaintDC dc(hwnd);
+		Gdiplus::Graphics* graphics = new Gdiplus::Graphics(dc);
+		graphics->DrawImage(memory, 0, 0);
+
+		delete memory;
+		delete canvas;
+
+		break;
 	}
 
 	}

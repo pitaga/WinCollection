@@ -23,6 +23,18 @@
     <ClInclude Include="resource.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="WtlCDC.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WtlRect.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WtlString.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CGdiPlusBitmap.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resource.rc">
